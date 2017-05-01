@@ -9,4 +9,7 @@
                  [ch.qos.logback/logback-classic "1.1.3"]
                  [http-kit "2.2.0"]
                  [cheshire "5.7.1"]
-                 [compojure "1.5.2"]])
+                 [compojure "1.5.2"]
+                 [com.github.kyleburton/clj-xpath "1.4.3"]]
+  :profiles {:dev {:resource-paths ["test_resources"]}
+             :test {:dependencies [[http-kit.fake "0.2.1"]]}})

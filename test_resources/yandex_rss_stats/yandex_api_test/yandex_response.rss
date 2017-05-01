@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss xmlns:yablogs="urn:yandex-blogs" xmlns:wfw="http://wellformedweb.org/CommentAPI/" version="2.0">
+  <channel>
+    <link>https://yandex.ru/blogs/rss/search?text=mock</link>
+    <title>mock — Яндекс.Поиск по блогам</title>
+    <image>
+      <url>https://img.yandex.net/i/logo100x43.png</url>
+      <title>Поиск Яндекса по блогам</title>
+      <link>https://yandex.ru/blogs</link>
+      <width>100</width>
+      <height>43</height>
+    </image>
+    <ttl>60</ttl>
+    <generator>yandex.ru/blogs</generator>
+    <webMaster>support@blogs.yandex.ru</webMaster>
+    <copyright>noindex</copyright>
+    <description>Результаты поиска Яндекса по блогам и форумам по запросу: «mock»</description>
+    <yablogs:count>1582</yablogs:count>
+    <yablogs:more>https://yandex.ru/blogs/rss/search?p=1&amp;text=mock</yablogs:more>
+    <item>
+      <yablogs:author>kovicskoolklan</yablogs:author>
+      <title>I was looking up facts about Jamie Kennedy in order to better mock...</title>
+      <pubDate>Mon, 01 May 2017 13:02:11 GMT</pubDate>
+      <guid>http://vk.com/wall-75338648_3206</guid>
+      <link>http://vk.com/wall-75338648_3206</link>
+      <wfw:commentRss>https://yandex.ru/blogs/rss/search?post=http%3A%2F%2Fvk.com%2Fwall-75338648_3206</wfw:commentRss>
+      <yablogs:journal url="http://vk.com/club75338648">FUNHAUS</yablogs:journal>
+      <description>I was looking up facts about Jamie Kennedy in order to better &lt;b&gt;mock&lt;/b&gt; him in this description and then I saw his net worth so now I&#x27;m just gonna shut my stupid poor mouth and go back to my one bedroom...</description>
+    </item>
+    <item>
+      <yablogs:author>ege100ballov</yablogs:author>
+      <title>Советы эксперта: как сдать ЕГЭ по АНГЛИЙСКОМУ ЯЗЫКУ...</title>
+      <pubDate>Mon, 01 May 2017 12:10:12 GMT</pubDate>
+      <guid>http://vk.com/wall-10175642_2570314</guid>
+      <link>http://vk.com/wall-10175642_2570314</link>
+      <wfw:commentRss>https://yandex.ru/blogs/rss/search?post=http%3A%2F%2Fvk.com%2Fwall-10175642_2570314</wfw:commentRss>
+      <yablogs:journal url="http://vk.com/club10175642">ЕГЭ 2017 Самоподготовка</yablogs:journal>
+      <description>Если есть возможность пройти так называемый &lt;b&gt;Mock&lt;/b&gt; Exam (пробный экзамен), надо ей воспользоваться, ведь это хорошая репетиция настоящего экзамена и возможность ощутить...</description>
+    </item>
+    <item>
+      <yablogs:author>Dylan</yablogs:author>
+      <title>Epson artisan 730 troubleshooting</title>
+      <pubDate>Mon, 01 May 2017 07:08:13 GMT</pubDate>
+      <guid>http://liaclub.info/2017/05/01/epson-artisan-730-troubleshooting_gk/</guid>
+      <link>http://liaclub.info/2017/05/01/epson-artisan-730-troubleshooting_gk/</link>
+      <wfw:commentRss>https://yandex.ru/blogs/rss/search?post=http%3A%2F%2Fliaclub.info%2F2017%2F05%2F01%2Fepson-artisan-730-troubleshooting_gk%2F</wfw:commentRss>
+      <yablogs:journal url="http://liaclub.info">LIA-клуб</yablogs:journal>
+      <description>Inca Robb opened their brooms and &lt;b&gt;mocks&lt;/b&gt; materialistically! Maynord presentation minimize pipe segments INHUME indiscernibly?</description>
+    </item>
+  </channel>
+</rss>
