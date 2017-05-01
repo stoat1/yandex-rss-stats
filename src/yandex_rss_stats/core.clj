@@ -1,14 +1,17 @@
 (ns yandex-rss-stats.core
   (:require [clojure.tools.logging :as log]
-            [org.httpkit.server :refer [with-channel send! run-server]]))
+            [org.httpkit.server :refer [with-channel send! run-server]]
+            [cheshire.core :refer [generate-string]]))
 
 (defonce server (atom nil))
 
 (defn async-handler [ring-request]
   (with-channel ring-request channel
     (send! channel {:status  200
-                    :headers {"Content-Type" "text/plain"}
-                    :body    "http-kit is working"})))
+                    :headers {"Content-Type" "application/json"}
+                    :body    (generate-string {:status "ok"
+                                               :message "http-kit is working"}
+                                              {:pretty true})})))
 
 (defn start-server []
   (swap! server (fn [current]
