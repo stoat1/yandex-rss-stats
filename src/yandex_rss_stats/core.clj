@@ -1,22 +1,14 @@
 (ns yandex-rss-stats.core
   (:require [clojure.tools.logging :as log]
-            [org.httpkit.server :refer [with-channel send! run-server]]
-            [cheshire.core :refer [generate-string]]
-            [compojure.core :refer [defroutes GET]]
-            [compojure.route :as route]))
+            [org.httpkit.server    :refer [run-server]]
+            [compojure.core        :refer [defroutes GET]]
+            [compojure.route       :as route])
+  (:require [yandex-rss-stats.controller :as controller]))
 
 (defonce server (atom nil))
 
-(defn async-handler [ring-request]
-  (with-channel ring-request channel
-    (send! channel {:status  200
-                    :headers {"Content-Type" "application/json"}
-                    :body    (generate-string {:status "ok"
-                                               :message "http-kit is working"}
-                                              {:pretty true})})))
-
 (defroutes routes
-  (GET "/search" [:as req] (async-handler req))
+  (GET "/search" [:as req] (controller/search req))
   (route/not-found "Use /search end point"))
 
 (defn start-server []
