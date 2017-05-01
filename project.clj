@@ -8,4 +8,5 @@
                  [org.clojure/tools.logging "0.3.1"]
                  [ch.qos.logback/logback-classic "1.1.3"]
                  [http-kit "2.2.0"]
-                 [cheshire "5.7.1"]])
+                 [cheshire "5.7.1"]
+                 [compojure "1.5.2"]])
