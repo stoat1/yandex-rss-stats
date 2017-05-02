@@ -6,10 +6,15 @@
 (def YANDEX_API_URL "https://yandex.ru/blogs/rss/search")
 
 (defn blog-search [query callback]
-  ;; FIXME implement error handling
   (letfn [(on-response [{:keys [status body error] :as res}]
-            (let [result ($x:text* "/rss/channel/item/link" body)]
-              (callback result)))]
+            ;; FIXME try-catch inside letfn looks ugly, other options?
+            (try
+              (if (= 200 status)
+                (let [result ($x:text* "/rss/channel/item/link" body)]
+                  (callback true result))
+                (callback false "Unexpected status code"))
+              (catch Throwable e
+                (callback false e))))]
     (http/get YANDEX_API_URL {:query-params {"text" query}} on-response)))
 
 
