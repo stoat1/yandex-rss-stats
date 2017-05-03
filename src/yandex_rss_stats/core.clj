@@ -2,19 +2,10 @@
   (:require [clojure.tools.logging :as log]
             [org.httpkit.server    :refer [run-server]]
             [compojure.core        :refer [defroutes GET]]
-            [compojure.route       :as route]
-            [ring.middleware.params :refer [wrap-params]])
-  (:require [yandex-rss-stats.controller :as controller]))
+            [compojure.route       :as route])
+  (:require [yandex-rss-stats.controller :refer [handler]]))
 
 (defonce server (atom nil))
-
-;; TODO move routes to controller namespace
-(defroutes routes
-  (GET "/search" [query :as req]
-    (controller/search req))
-  (route/not-found "Use /search end point"))
-
-(def handler (wrap-params routes))
 
 (defn start-server []
   (swap! server (fn [current]
