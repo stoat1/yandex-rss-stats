@@ -15,6 +15,7 @@
                 (callback false "Unexpected status code"))
               (catch Throwable e
                 (callback false e))))]
+    ;; TODO limit number or parallel connections
     (http/get YANDEX_API_URL {:query-params {"text" query}} on-response)))
 
 

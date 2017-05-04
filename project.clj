@@ -11,6 +11,7 @@
                  [cheshire "5.7.1"]
                  [compojure "1.5.2"]
                  [com.github.kyleburton/clj-xpath "1.4.3"]
-                 [ring/ring-mock "0.3.0"]]
+                 [ring/ring-mock "0.3.0"]
+                 [org.clojure/core.async "0.3.442"]]
   :profiles {:dev {:resource-paths ["test_resources"]}
              :test {:dependencies [[http-kit.fake "0.2.1"]]}})

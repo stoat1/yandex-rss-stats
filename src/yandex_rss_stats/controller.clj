@@ -5,15 +5,37 @@
             [compojure.core        :refer [routes GET]]
             [compojure.route       :as route]
             [cheshire.core         :refer [generate-string]]
-            [ring.middleware.params :refer [wrap-params]]))
+            [ring.middleware.params :refer [wrap-params]]
+            [clojure.core.async         :refer [chan go >! <!] :as async])
+  (:require [yandex-rss-stats.yandex-api :refer [blog-search]]))
 
-(defn- search [ring-request]
+(defn- search [{{:strs [query]} :query-params :as ring-request}]
   (with-channel ring-request channel
-    (send! channel {:status  200
-                    :headers {"Content-Type" "application/json"}
-                    :body    (generate-string {:status "ok"
-                                               :message "http-kit is working"}
-                                              {:pretty true})})))
+    (let [n (count query)
+          results (chan n)
+          ;; force redefs to happen now (needed for unit tests)
+          send! send!]
+
+      ;; call blog search
+      ;; FIXME if query is a string then we are iterating over its characters. Fix it!
+      (doseq [query-elem query]
+        (blog-search query-elem (fn [ok? links]
+                                  ;; TODO check `ok?`
+                                  (log/info "Completed search for" query-elem)
+                                  (go (>! results links)))))
+
+      ;; get search results and make the response
+      (let [aggregated-result (->> results
+                                   ;; close chan after n elements
+                                   (async/take n)
+                                   ;; squash n elements into one collection
+                                   (async/into []))]
+        (go (let [links (<! aggregated-result)]
+              (send! channel {:status  200
+                              :headers {"Content-Type" "application/json"}
+                              :body    (generate-string {:status "ok"
+                                                         :links links}
+                                                        {:pretty true})})))))))
 
 (def ^:private unwrapped-routes
   (routes

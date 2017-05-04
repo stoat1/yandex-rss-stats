@@ -13,14 +13,17 @@
       (is (= (:body result) "Use /search end point"))))
 
   (testing "vanilla mock"
-    (let [mock-channel 'mock-channel
-          send!-calls  (atom [])
-          req          (assoc (mock/request :get "/search?query=foo&query=bar")
-                         :async-channel mock-channel)]
+    (let [mock-channel      'mock-channel
+          send!-calls       (atom [])
+          blog-search-calls (atom [])
+          req               (assoc (mock/request :get "/search?query=foo&query=bar")
+                              :async-channel mock-channel)]
 
-      ;; replace send! function with mocked implementation
-      (with-redefs [org.httpkit.server/send! (fn [& args]
-                                               (swap! send!-calls conj args))]
+      ;; replace send! and blog-search functions with mocked implementation
+      (with-redefs [org.httpkit.server/send!                (fn [& args]
+                                                              (swap! send!-calls conj args))
+                    yandex-rss-stats.yandex-api/blog-search (fn [& args]
+                                                              (swap! blog-search-calls conj args))]
 
         ;; invoke the handler
         (let [ret (handler req)]
@@ -29,26 +32,58 @@
           (is (= {:status  200
                   :headers {}
                   :body mock-channel}
-                 ret))))
+                 ret)))
 
-      ;; check send! invocations
-      (let [[[arg1 arg2]] @send!-calls]
+        ;; check blog-search invocations
+        (let [[[arg-1-1 arg-1-2] [arg-2-1 arg-2-2]] @blog-search-calls]
 
-        ;; check how many times it was invoked
-        (is (= (count @send!-calls) 1))
+          ;; check how many times it was invoked
+          (is (= (count @blog-search-calls) 2))
 
-        ;; check how many arguments were passed
-        (is (= (count (first @send!-calls)) 2))
+          ;; check how many arguments were passed
+          (for [args @blog-search-calls]
+            (is (= (count args) 2)))
 
-        ;; check the first argument
-        (is (= arg1 mock-channel))
+          ;; first argument should come from query params
+          (is (= arg-1-1 "foo"))
+          (is (= arg-2-1 "bar"))
 
-        ;; check the second argument
-        (is (= (-> arg2
-                   :body
-                   parse-string)
-               {"message" "http-kit is working"
-                "status"  "ok"}))
-        (is (= {:status 200
-                :headers {"Content-Type" "application/json"}}
-               (dissoc arg2 :body)))))))
+          ;; check that send! isn't yet invoked (handler should wait for the client to respond)
+          (is (= [] @send!-calls))
+
+          ;; at this point in time, we emulate that the second client is ready
+          (arg-2-2 true ["link B1", "link B2"])
+
+          ;; send! should not yet be invoked
+          (is (= [] @send!-calls))
+
+          ;; give it some time. Otherwise the result order may change and the assertion will fail
+          (Thread/sleep 100)
+
+          ;; now the first client is ready
+          (arg-1-2 true ["link A1", "link A2"]))
+
+        ;; TODO wait for condition using clj-async-test
+        (Thread/sleep 1000)
+
+        ;; check send! invocations
+        (let [[[arg1 arg2]] @send!-calls]
+
+          ;; check how many times it was invoked
+          (is (= (count @send!-calls) 1))
+
+          ;; check how many arguments were passed
+          (is (= (count (first @send!-calls)) 2))
+
+          ;; check the first argument
+          (is (= arg1 mock-channel))
+
+          ;; check the second argument
+          (is (= (-> arg2
+                     :body
+                     parse-string)
+                 {"links"  [["link B1", "link B2"], ["link A1", "link A2"]]
+                  "status" "ok"}))
+          (is (= {:status 200
+                  :headers {"Content-Type" "application/json"}}
+                 (dissoc arg2 :body))))))))
