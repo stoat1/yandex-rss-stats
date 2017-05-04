@@ -17,14 +17,38 @@
           send!-calls  (atom [])
           req          (assoc (mock/request :get "/search?query=foo&query=bar")
                          :async-channel mock-channel)]
+
+      ;; replace send! function with mocked implementation
       (with-redefs [org.httpkit.server/send! (fn [& args]
                                                (swap! send!-calls conj args))]
-        (handler req))
+
+        ;; invoke the handler
+        (let [ret (handler req)]
+
+          ;; check that channel response was returned
+          (is (= {:status  200
+                  :headers {}
+                  :body mock-channel}
+                 ret))))
+
+      ;; check send! invocations
       (let [[[arg1 arg2]] @send!-calls]
+
+        ;; check how many times it was invoked
+        (is (= (count @send!-calls) 1))
+
+        ;; check how many arguments were passed
+        (is (= (count (first @send!-calls)) 2))
+
+        ;; check the first argument
         (is (= arg1 mock-channel))
-        (is (= 200 (:status arg2)))
+
+        ;; check the second argument
         (is (= (-> arg2
                    :body
                    parse-string)
                {"message" "http-kit is working"
-                "status" "ok"}))))))
+                "status"  "ok"}))
+        (is (= {:status 200
+                :headers {"Content-Type" "application/json"}}
+               (dissoc arg2 :body)))))))
