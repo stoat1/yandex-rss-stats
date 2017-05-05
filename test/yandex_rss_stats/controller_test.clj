@@ -86,4 +86,27 @@
                   "status" "ok"}))
           (is (= {:status 200
                   :headers {"Content-Type" "application/json"}}
-                 (dissoc arg2 :body))))))))
+                 (dissoc arg2 :body)))))))
+
+  ;; FIXME get rid of boilerplate code
+  (testing "single query"
+    (let [mock-channel      'mock-channel
+          send!-calls       (atom [])
+          blog-search-calls (atom [])
+          req               (assoc (mock/request :get "/search?query=foo")
+                              :async-channel mock-channel)]
+
+      ;; replace send! and blog-search functions with mocked implementation
+      (with-redefs [org.httpkit.server/send!                (fn [& args]
+                                                              (swap! send!-calls conj args))
+                    yandex-rss-stats.yandex-api/blog-search (fn [& args]
+                                                              (swap! blog-search-calls conj args))]
+
+        ;; invoke the handler
+        (handler req)
+
+        ;; check that blog-saarch wasn't invoked for each of \f \o \o letters
+        (let [[[arg1 arg2] :as args] @blog-search-calls]
+          ;; check how many times it was invoked
+          (is (= (count args) 1))
+          (is (= arg1 "foo")))))))

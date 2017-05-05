@@ -9,11 +9,14 @@
             [clojure.core.async         :refer [chan go >! <!] :as async])
   (:require [yandex-rss-stats.yandex-api :refer [blog-search]]))
 
-(defn- search [{{:strs [query]} :query-params :as ring-request}]
+(defn- search [{{:strs [query]} :query-params, :as ring-request}]
   (with-channel ring-request channel
-    (let [n (count query)
+    (let [query (if (string? query) ;; treat single query as a singleton array
+                  [query]
+                  query)
+          n (count query)
           results (chan n)
-          ;; force redefs to happen now (needed for unit tests)
+          ;; force redefs to happen now, in current thread (needed for unit tests)
           send! send!]
 
       ;; call blog search
