@@ -27,19 +27,20 @@
         (blog-search query-elem (fn [ok? links]
                                   ;; TODO check `ok?`
                                   (log/info "Completed search for" query-elem)
-                                  (go (>! results links)))))
+                                  (go (>! results [query-elem links])))))
 
       ;; get search results and make the response
       (let [aggregated-result (->> results
                                    ;; close chan after n elements
                                    (async/take n)
                                    ;; squash n elements into one collection
-                                   (async/into []))]
-        (go (let [links (<! aggregated-result)
-                  stats (make-stats links)]
+                                   (async/into {}))]
+        (go (let [body (-> (<! aggregated-result)              ;; get collection of results
+                            make-stats                         ;; calculate stats
+                            (generate-string {:pretty true}))] ;; serialize
               (send! channel {:status  200
                               :headers {"Content-Type" "application/json"}
-                              :body    (generate-string stats {:pretty true})})))))))
+                              :body    body})))))))
 
 (defn make-stats [links]
   "Calculate statistics from links"

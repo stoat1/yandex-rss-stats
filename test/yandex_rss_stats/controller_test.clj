@@ -61,9 +61,6 @@
           ;; send! should not yet be invoked
           (is (= [] @send!-calls))
 
-          ;; give it some time. Otherwise the result order may change and the assertion will fail
-          (Thread/sleep 100)
-
           ;; now the first client is ready
           (arg-1-2 true ["link A1", "link A2"]))
 
@@ -93,7 +90,9 @@
 
         ;; check make-stats invocation
         (let [[[arg]] @make-stats-calls]
-          (is (= [["link B1" "link B2"] ["link A1" "link A2"]] arg))))))
+          (is (= {"foo" ["link A1" "link A2"]
+                  "bar" ["link B1" "link B2"]}
+                 arg))))))
 
   ;; FIXME get rid of boilerplate code
   (testing "single query"
