@@ -25,9 +25,9 @@
                                                               (swap! send!-calls conj args))
                     yandex-rss-stats.yandex-api/blog-search (fn [& args]
                                                               (swap! blog-search-calls conj args))
-                    yandex-rss-stats.controller/make-stats (fn [& args]
-                                                             (swap! make-stats-calls conj args)
-                                                             {:stats "stub stats"})]
+                    yandex-rss-stats.stats/make-stats       (fn [& args]
+                                                              (swap! make-stats-calls conj args)
+                                                              {:stats "stub stats"})]
 
         ;; invoke the handler
         (let [ret (handler req)]
@@ -107,7 +107,7 @@
                                                               (swap! send!-calls conj args))
                     yandex-rss-stats.yandex-api/blog-search (fn [& args]
                                                               (swap! blog-search-calls conj args))
-                    yandex-rss-stats.controller/make-stats (fn [& args] "stub")]
+                    yandex-rss-stats.stats/make-stats (fn [& args] "stub")]
 
         ;; invoke the handler
         (handler req)

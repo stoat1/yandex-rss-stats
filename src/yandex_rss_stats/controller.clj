@@ -7,9 +7,8 @@
             [cheshire.core         :refer [generate-string]]
             [ring.middleware.params :refer [wrap-params]]
             [clojure.core.async         :refer [chan go >! <!] :as async])
-  (:require [yandex-rss-stats.yandex-api :refer [blog-search]]))
-
-(def make-stats)
+  (:require [yandex-rss-stats.yandex-api :refer [blog-search]]
+            [yandex-rss-stats.stats :refer [make-stats]]))
 
 (defn- search [{{:strs [query]} :query-params, :as ring-request}]
   (with-channel ring-request channel
@@ -41,14 +40,6 @@
               (send! channel {:status  200
                               :headers {"Content-Type" "application/json"}
                               :body    body})))))))
-
-(defn make-stats [links]
-  "Calculate statistics from links"
-  ;; stub
-  {
-    :stats-1 100
-    :stats-2 500
-  })
 
 (def ^:private unwrapped-routes
   (routes
