@@ -9,6 +9,8 @@
             [clojure.core.async         :refer [chan go >! <!] :as async])
   (:require [yandex-rss-stats.yandex-api :refer [blog-search]]))
 
+(def make-stats)
+
 (defn- search [{{:strs [query]} :query-params, :as ring-request}]
   (with-channel ring-request channel
     (let [query (if (string? query) ;; treat single query as a singleton array
@@ -33,12 +35,19 @@
                                    (async/take n)
                                    ;; squash n elements into one collection
                                    (async/into []))]
-        (go (let [links (<! aggregated-result)]
+        (go (let [links (<! aggregated-result)
+                  stats (make-stats links)]
               (send! channel {:status  200
                               :headers {"Content-Type" "application/json"}
-                              :body    (generate-string {:status "ok"
-                                                         :links links}
-                                                        {:pretty true})})))))))
+                              :body    (generate-string stats {:pretty true})})))))))
+
+(defn make-stats [links]
+  "Calculate statistics from links"
+  ;; stub
+  {
+    :stats-1 100
+    :stats-2 500
+  })
 
 (def ^:private unwrapped-routes
   (routes

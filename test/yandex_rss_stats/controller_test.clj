@@ -16,6 +16,7 @@
     (let [mock-channel      'mock-channel
           send!-calls       (atom [])
           blog-search-calls (atom [])
+          make-stats-calls  (atom [])
           req               (assoc (mock/request :get "/search?query=foo&query=bar")
                               :async-channel mock-channel)]
 
@@ -23,7 +24,10 @@
       (with-redefs [org.httpkit.server/send!                (fn [& args]
                                                               (swap! send!-calls conj args))
                     yandex-rss-stats.yandex-api/blog-search (fn [& args]
-                                                              (swap! blog-search-calls conj args))]
+                                                              (swap! blog-search-calls conj args))
+                    yandex-rss-stats.controller/make-stats (fn [& args]
+                                                             (swap! make-stats-calls conj args)
+                                                             {:stats "stub stats"})]
 
         ;; invoke the handler
         (let [ret (handler req)]
@@ -82,11 +86,14 @@
           (is (= (-> arg2
                      :body
                      parse-string)
-                 {"links"  [["link B1", "link B2"], ["link A1", "link A2"]]
-                  "status" "ok"}))
+                 {"stats" "stub stats"}))
           (is (= {:status 200
                   :headers {"Content-Type" "application/json"}}
-                 (dissoc arg2 :body)))))))
+                 (dissoc arg2 :body))))
+
+        ;; check make-stats invocation
+        (let [[[arg]] @make-stats-calls]
+          (is (= [["link B1" "link B2"] ["link A1" "link A2"]] arg))))))
 
   ;; FIXME get rid of boilerplate code
   (testing "single query"
@@ -100,7 +107,8 @@
       (with-redefs [org.httpkit.server/send!                (fn [& args]
                                                               (swap! send!-calls conj args))
                     yandex-rss-stats.yandex-api/blog-search (fn [& args]
-                                                              (swap! blog-search-calls conj args))]
+                                                              (swap! blog-search-calls conj args))
+                    yandex-rss-stats.controller/make-stats (fn [& args] "stub")]
 
         ;; invoke the handler
         (handler req)
