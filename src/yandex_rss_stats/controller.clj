@@ -10,18 +10,17 @@
   (:require [yandex-rss-stats.yandex-api :refer [blog-search]]
             [yandex-rss-stats.stats :refer [make-stats]]))
 
-(defn- search [{{:strs [query]} :query-params, :as ring-request}]
+(defn- search
+  "Controller function for /search endpoint"
+  [{{:strs [query]} :query-params, :as ring-request}]
   (with-channel ring-request channel
-    (let [query (if (string? query) ;; treat single query as a singleton array
-                  [query]
-                  query)
-          n (count query)
-          results (chan n)
-          ;; force redefs to happen now, in current thread (needed for unit tests)
-          send! send!]
+    (let [query   (if (string? query) ;; treat single query as a singleton array
+                    [query]           ;; TODO put it shorter: (flatten [query])
+                    query)
+          n       (count query)
+          results (chan n)]
 
       ;; call blog search
-      ;; FIXME if query is a string then we are iterating over its characters. Fix it!
       (doseq [query-elem query]
         (blog-search query-elem (fn [ok? links]
                                   ;; TODO check `ok?`
@@ -30,20 +29,24 @@
 
       ;; get search results and make the response
       (let [aggregated-result (->> results
-                                   ;; close chan after n elements
+                                   ;; close channel after all elements received
                                    (async/take n)
                                    ;; squash n elements into one collection
-                                   (async/into {}))]
+                                   (async/into {}))
+            ;; put var into closure in order to force current thread bindings to take effect inside async code
+            ;; (needed for unit tests)
+            send! send!]
         (go (let [body (-> (<! aggregated-result)              ;; get collection of results
                             make-stats                         ;; calculate stats
                             (generate-string {:pretty true}))] ;; serialize
-              (send! channel {:status  200
+              (send! channel {:status  200 ;; TODO remove default status
+                              ;; TODO use middleware to add content type
                               :headers {"Content-Type" "application/json"}
                               :body    body})))))))
 
 (def ^:private unwrapped-routes
   (routes
-    (GET "/search" [query :as req]
+    (GET "/search" [:as req]
       (search req))
     (route/not-found "Use /search end point")))
 

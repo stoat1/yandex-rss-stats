@@ -7,28 +7,24 @@
 
 (defonce server (atom nil))
 
+(add-watch server :log-server-state (fn [key ref old new]
+                                      (if-let [port  (->> new
+                                                          meta
+                                                          :local-port)]
+                                        (log/info "Server started on port" port)
+                                        (log/info "Server stopped"))))
+
 (defn start-server []
   (swap! server (fn [current]
-                  (assert (nil? current))
-                  (run-server handler {:port 8080})))
-  (log/info "Server started"))
+                  (assert (nil? current) "Already started")
+                  (run-server handler {:port 8080}))))
 
 (defn stop-server []
   (swap! server (fn [stop-fn]
                   (assert stop-fn)
                   (stop-fn)
-                  nil))
-  (log/info "Server stopped"))
+                  nil)))
 
 (defn -main []
   (log/info "Application started")
   (start-server))
-
-;; pieces of code for instarepl
-(comment
-
-  (stop-server)
-
-  (start-server)
-  )
-

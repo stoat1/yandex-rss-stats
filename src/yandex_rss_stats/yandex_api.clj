@@ -8,6 +8,7 @@
 (defn blog-search [query callback]
   (letfn [(on-response [{:keys [status body error] :as res}]
             ;; FIXME try-catch inside letfn looks ugly, other options?
+            ;; TODO check `error`
             (try
               (if (= 200 status)
                 (let [result ($x:text* "/rss/channel/item/link" body)]
