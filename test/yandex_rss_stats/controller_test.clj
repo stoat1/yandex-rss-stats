@@ -116,4 +116,40 @@
         (let [[[arg1 arg2] :as args] @blog-search-calls]
           ;; check how many times it was invoked
           (is (= (count args) 1))
-          (is (= arg1 "foo")))))))
+          (is (= arg1 "foo"))))))
+
+  (testing "client failure"
+    (let [mock-channel 'mock-channel
+          send!-calls  (atom [])
+          blog-search-calls (atom {})
+          req          (assoc (mock/request :get "/search?query=foo&query=bar")
+                         :async-channel mock-channel)]
+      (with-redefs [org.httpkit.server/send!                (fn [& args]
+                                                              (swap! send!-calls conj args))
+                    yandex-rss-stats.yandex-api/blog-search (fn [query callback]
+                                                              (swap! blog-search-calls assoc query callback))
+                    yandex-rss-stats.stats/make-stats       (fn [& args] (is false "make-stats should not be invoked"))]
+
+        ;; invoke the handler
+        (handler req)
+
+        ;; wait until client is invoked
+        ;; TODO use clj-async-test
+        (Thread/sleep 100)
+        (is (= (count @blog-search-calls) 2))
+
+        ;; mock responses from client
+        (let [{:strs [foo bar]}  @blog-search-calls]
+          ;; the foo call will succeed
+          (foo true ["linke1", "linke2"])
+          ;; the bar call will fail
+          (bar false "I'm failed"))
+
+        ;; give it time to think and invoke send! function
+        (Thread/sleep 100)
+        (is (= (count @send!-calls) 1))
+
+        (let [[[arg1 arg2]] @send!-calls]
+          (is (= arg1 mock-channel))
+          (is (= arg2 {:status 500
+                       :body   "Query bar failed"})))))))

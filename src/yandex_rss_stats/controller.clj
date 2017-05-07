@@ -6,7 +6,7 @@
             [compojure.route       :as route]
             [cheshire.core         :refer [generate-string]]
             [ring.middleware.params :refer [wrap-params]]
-            [clojure.core.async         :refer [chan go >! <!] :as async])
+            [clojure.core.async         :refer [chan go >! <! alt!] :as async])
   (:require [yandex-rss-stats.yandex-api :refer [blog-search]]
             [yandex-rss-stats.stats :refer [make-stats]]))
 
@@ -18,14 +18,20 @@
                     [query]           ;; TODO put it shorter: (flatten [query])
                     query)
           n       (count query)
-          results (chan n)]
+          results (chan n)
+          failure (chan 1)]
 
       ;; call blog search
       (doseq [query-elem query]
-        (blog-search query-elem (fn [ok? links]
-                                  ;; TODO check `ok?`
-                                  (log/info "Completed search for" query-elem)
-                                  (go (>! results [query-elem links])))))
+        (blog-search query-elem (fn [ok? links] ;; TODO can we use multimethods here?
+                                  (if ok?
+                                    (do
+                                      (log/info "Completed search for" query-elem)
+                                      ;; TODO we can put elems synchronously
+                                      (go (>! results [query-elem links])))
+                                    (do
+                                      (log/error "Failed search for" query-elem)
+                                      (go (>! failure query-elem)))))))
 
       ;; get search results and make the response
       (let [aggregated-result (->> results
@@ -36,13 +42,15 @@
             ;; put var into closure in order to force current thread bindings to take effect inside async code
             ;; (needed for unit tests)
             send! send!]
-        (go (let [body (-> (<! aggregated-result)              ;; get collection of results
-                            make-stats                         ;; calculate stats
-                            (generate-string {:pretty true}))] ;; serialize
-              (send! channel {:status  200 ;; TODO remove default status
-                              ;; TODO use middleware to add content type
-                              :headers {"Content-Type" "application/json"}
-                              :body    body})))))))
+        (go (alt! aggregated-result ([result] (let [body (-> result              ;; get collection of results
+                                                             make-stats                         ;; calculate stats
+                                                             (generate-string {:pretty true}))] ;; serialize
+                                                (send! channel {:status  200 ;; TODO remove default status
+                                                                ;; TODO use middleware to add content type
+                                                                :headers {"Content-Type" "application/json"}
+                                                                :body    body})))
+                  failure           ([elem] (send! channel {:status 500
+                                                            :body   (str "Query " elem " failed")}))))))))
 
 (def ^:private unwrapped-routes
   (routes
