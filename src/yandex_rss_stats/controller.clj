@@ -6,7 +6,7 @@
             [compojure.route       :as route]
             [cheshire.core         :refer [generate-string]]
             [ring.middleware.params :refer [wrap-params]]
-            [clojure.core.async         :refer [chan go >! <! alt!] :as async])
+            [clojure.core.async         :refer [chan go >!! <! alt!] :as async])
   (:require [yandex-rss-stats.yandex-api :refer [blog-search]]
             [yandex-rss-stats.stats :refer [make-stats]]))
 
@@ -27,11 +27,10 @@
                                   (if ok?
                                     (do
                                       (log/info "Completed search for" query-elem)
-                                      ;; TODO we can put elems synchronously
-                                      (go (>! results [query-elem links])))
+                                      (>!! results [query-elem links]))
                                     (do
                                       (log/error "Failed search for" query-elem)
-                                      (go (>! failure query-elem)))))))
+                                      (>!! failure query-elem))))))
 
       ;; get search results and make the response
       (let [aggregated-result (->> results
