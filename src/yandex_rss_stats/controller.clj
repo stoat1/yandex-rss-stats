@@ -38,7 +38,8 @@
         ;; write response
         (send! channel res)))
 
-(defn- send-failure-response! [channel {:keys [query] :as failed-result}]
+(defn- send-failure-response! [channel {:keys [query error] :as failed-result}]
+  (log/error "Query " query " failed with error " error)
   (send! channel {:status 500
                   :body   (str "Query " query " failed")}))
 

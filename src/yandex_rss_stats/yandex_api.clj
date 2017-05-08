@@ -8,13 +8,13 @@
 (defn blog-search [query callback]
   (letfn [(on-response [{:keys [status body error] :as res}]
             ;; FIXME try-catch inside letfn looks ugly, other options?
-            ;; TODO check `error`
             (try
-              (if (= 200 status)
-                (let [result ($x:text* "/rss/channel/item/link" body)]
-                  (callback true result nil))
-                (callback false nil "Unexpected status code"))
+              (cond (some? error)  (callback false nil error)
+                    (= 200 status) (let [result ($x:text* "/rss/channel/item/link" body)]
+                                     (callback true result nil))
+                    :else          (callback false nil (str "Unexpected status code " status)))
               (catch Throwable e
+                (log/error "Unexpected exception" e)
                 (callback false nil e))))]
     ;; TODO limit number or parallel connections
     (http/get YANDEX_API_URL {:query-params {"text" query}} on-response)))
