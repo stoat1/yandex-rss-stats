@@ -9,9 +9,7 @@
 
 (add-watch server :log-server-state (fn [key ref old new]
                                       ;; TODO use some->>
-                                      (if-let [port  (->> new
-                                                          meta
-                                                          :local-port)]
+                                      (if-let [port  (some-> new meta :local-port)]
                                         (log/info "Server started on port" port)
                                         (log/info "Server stopped"))))
 
