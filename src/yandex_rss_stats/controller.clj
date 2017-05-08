@@ -10,6 +10,38 @@
   (:require [yandex-rss-stats.yandex-api :refer [blog-search]]
             [yandex-rss-stats.stats :refer [make-stats]]))
 
+(defn- calculate-stats [n results]
+  "Calculate states for the first n results in channel and return channel with one element"
+  (->> results
+
+       ;; close channel after all elements received
+       (async/take n)
+
+       ;; convert to pairs
+       (vector)
+       (async/map (juxt :query :links))
+
+       ;; squash n elements into one collection
+       (async/into {})
+
+       ;; calculate stats
+       (vector)
+       (async/map make-stats)))
+
+(defn- send-stats-response! [channel stats]
+  (as-> {:status 200             ;; make response
+         :body   stats} res
+
+        ;; serialize and add headers
+        (json-response res {:pretty true})
+
+        ;; write response
+        (send! channel res)))
+
+(defn- send-failure-response! [channel {:keys [query] :as failed-result}]
+  (send! channel {:status 500
+                  :body   (str "Query " query " failed")}))
+
 (defn- search
   "Controller function for /search endpoint"
   [{{:strs [query]} :query-params, :as ring-request}]
@@ -26,21 +58,7 @@
           [ok-results failures] (async/split :ok? results)
 
           ;; calculate stats for successful results
-          stats (->> ok-results
-
-                     ;; close channel after all elements received
-                     (async/take n)
-
-                     ;; convert to pairs
-                     (vector)
-                     (async/map (juxt :query :links))
-
-                     ;; squash n elements into one collection
-                     (async/into {})
-
-                     ;; calculate stats
-                     (vector)
-                     (async/map make-stats))
+          stats (calculate-stats n ok-results)
 
           ;; put var into closure in order to force current thread bindings to take effect inside async code
           ;; (needed for unit tests)
@@ -57,19 +75,11 @@
       (go (alt!
             ;; if all results were ok than put them into response
             stats
-            ([stats] (as-> {:status 200             ;; make response
-                            :body   stats} res
-
-                           ;; serialize and add headers
-                           (json-response res {:pretty true})
-
-                           ;; write response
-                           (send! channel res)))
+            ([stats] (send-stats-response! channel stats))
 
             ;; if there was a failure then respond with server error
             failures
-            ([{:keys [query]}] (send! channel {:status 500
-                                               :body   (str "Query " query " failed")})))))))
+            ([failure] (send-failure-response! channel failure)))))))
 
 (def ^:private unwrapped-routes
   (routes
