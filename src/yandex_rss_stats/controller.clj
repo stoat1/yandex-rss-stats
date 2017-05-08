@@ -59,11 +59,7 @@
           [ok-results failures] (async/split :ok? results)
 
           ;; calculate stats for successful results
-          stats (calculate-stats n ok-results)
-
-          ;; put var into closure in order to force current thread bindings to take effect inside async code
-          ;; (needed for unit tests)
-          send! send!]
+          stats (calculate-stats n ok-results)]
 
       ;; call blog search
       (doseq [query-elem query]
