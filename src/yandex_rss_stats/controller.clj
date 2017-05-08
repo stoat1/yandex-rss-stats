@@ -14,10 +14,10 @@
   "Controller function for /search endpoint"
   [{{:strs [query]} :query-params, :as ring-request}]
   (with-channel ring-request channel
-    (let [query      (if (string? query) ;; treat single query as a singleton array
-                       [query]           ;; TODO put it shorter: (flatten [query])
-                       query)
-          n          (count query)
+    (let [query (if (string? query) ;; treat single query as a singleton array
+                  [query]           ;; TODO put it shorter: (flatten [query])
+                  query)
+          n     (count query)
 
           ;; channel to conduct blog search results
           results (chan n)
@@ -25,15 +25,22 @@
           ;; separate sucessful results and errors
           [ok-results failures] (async/split :ok? results)
 
-          ;; accumulate successful results into collection
-          aggregated-result (->> ok-results
-                                 ;; close channel after all elements received
-                                 (async/take n)
-                                 ;; convert to pairs
-                                 (vector)
-                                 (async/map (juxt :query :links))
-                                 ;; squash n elements into one collection
-                                 (async/into {}))
+          ;; calculate stats for successful results
+          stats (->> ok-results
+
+                     ;; close channel after all elements received
+                     (async/take n)
+
+                     ;; convert to pairs
+                     (vector)
+                     (async/map (juxt :query :links))
+
+                     ;; squash n elements into one collection
+                     (async/into {})
+
+                     ;; calculate stats
+                     (vector)
+                     (async/map make-stats))
 
           ;; put var into closure in order to force current thread bindings to take effect inside async code
           ;; (needed for unit tests)
@@ -49,16 +56,15 @@
       ;; get search results and make the response
       (go (alt!
             ;; if all results were ok than put them into response
-            aggregated-result
-            ([result] (let [stats (make-stats result)] ;; calculate stats
-                        (as-> {:status 200             ;; make response
-                               :body   stats} res
+            stats
+            ([stats] (as-> {:status 200             ;; make response
+                            :body   stats} res
 
-                          ;; serialize and add headers
-                          (json-response res {:pretty true})
+                           ;; serialize and add headers
+                           (json-response res {:pretty true})
 
-                          ;; write response
-                          (send! channel res))))
+                           ;; write response
+                           (send! channel res)))
 
             ;; if there was a failure then respond with server error
             failures
