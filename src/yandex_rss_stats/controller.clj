@@ -5,6 +5,7 @@
             [compojure.route       :as route]
             [cheshire.core         :refer [generate-string]]
             [ring.middleware.params :refer [wrap-params]]
+            [ring.middleware.json  :refer [json-response]]
             [clojure.core.async         :refer [chan go >!! <! alt!] :as async])
   (:require [yandex-rss-stats.yandex-api :refer [blog-search]]
             [yandex-rss-stats.stats :refer [make-stats]]))
@@ -49,13 +50,15 @@
       (go (alt!
             ;; if all results were ok than put them into response
             aggregated-result
-            ([result] (let [body (-> result
-                                     make-stats                         ;; calculate stats
-                                     (generate-string {:pretty true}))] ;; serialize
-                        (send! channel {:status  200 ;; TODO remove default status
-                                        ;; TODO use middleware to add content type
-                                        :headers {"Content-Type" "application/json"}
-                                        :body    body})))
+            ([result] (let [stats (make-stats result)] ;; calculate stats
+                        (as-> {:status 200             ;; make response
+                               :body   stats} res
+
+                          ;; serialize and add headers
+                          (json-response res {:pretty true})
+
+                          ;; write response
+                          (send! channel res))))
 
             ;; if there was a failure then respond with server error
             failures

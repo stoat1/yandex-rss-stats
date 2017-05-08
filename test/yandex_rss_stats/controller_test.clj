@@ -85,7 +85,7 @@
                      parse-string)
                  {"stats" "stub stats"}))
           (is (= {:status 200
-                  :headers {"Content-Type" "application/json"}}
+                  :headers {"Content-Type" "application/json; charset=utf-8"}}
                  (dissoc arg2 :body))))
 
         ;; check make-stats invocation

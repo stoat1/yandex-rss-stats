@@ -8,6 +8,7 @@
 (defonce server (atom nil))
 
 (add-watch server :log-server-state (fn [key ref old new]
+                                      ;; TODO use some->>
                                       (if-let [port  (->> new
                                                           meta
                                                           :local-port)]
