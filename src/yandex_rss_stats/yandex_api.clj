@@ -1,9 +1,14 @@
 (ns yandex-rss-stats.yandex-api
   (:require [clojure.tools.logging :as log]
             [org.httpkit.client :as http]
-            [clj-xpath.core   :refer :all]))
+            [clj-xpath.core   :refer :all])
+  (:import  [org.httpkit.client HttpClient]))
 
 (def YANDEX_API_URL "https://yandex.ru/blogs/rss/search")
+
+(def MAX_CONNECTIONS 10)
+
+(def client (HttpClient. MAX_CONNECTIONS))
 
 (defn blog-search [query callback]
   (letfn [(on-response [{:keys [status body error] :as res}]
@@ -17,6 +22,7 @@
                 (log/error "Unexpected exception" e)
                 (callback false nil e))))]
     ;; TODO limit number or parallel connections
-    (http/get YANDEX_API_URL {:query-params {"text" query}} on-response)))
+    (http/get YANDEX_API_URL {:query-params {"text" query}
+                              :client client} on-response)))
 
 
