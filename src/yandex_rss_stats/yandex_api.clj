@@ -12,10 +12,10 @@
             (try
               (if (= 200 status)
                 (let [result ($x:text* "/rss/channel/item/link" body)]
-                  (callback true result))
-                (callback false "Unexpected status code"))
+                  (callback true result nil))
+                (callback false nil "Unexpected status code"))
               (catch Throwable e
-                (callback false e))))]
+                (callback false nil e))))]
     ;; TODO limit number or parallel connections
     (http/get YANDEX_API_URL {:query-params {"text" query}} on-response)))
 

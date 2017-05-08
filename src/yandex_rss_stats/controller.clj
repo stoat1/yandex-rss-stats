@@ -14,42 +14,54 @@
   "Controller function for /search endpoint"
   [{{:strs [query]} :query-params, :as ring-request}]
   (with-channel ring-request channel
-    (let [query   (if (string? query) ;; treat single query as a singleton array
-                    [query]           ;; TODO put it shorter: (flatten [query])
-                    query)
-          n       (count query)
+    (let [query      (if (string? query) ;; treat single query as a singleton array
+                       [query]           ;; TODO put it shorter: (flatten [query])
+                       query)
+          n          (count query)
+
+          ;; channel to conduct blog search results
           results (chan n)
-          failure (chan 1)]
+
+          ;; separate sucessful results and errors
+          [ok-results failures] (async/split :ok? results)
+
+          ;; accumulate successful results into collection
+          aggregated-result (->> ok-results
+                                 ;; close channel after all elements received
+                                 (async/take n)
+                                 ;; convert to pairs
+                                 (vector)
+                                 (async/map (juxt :query :links))
+                                 ;; squash n elements into one collection
+                                 (async/into {}))
+
+          ;; put var into closure in order to force current thread bindings to take effect inside async code
+          ;; (needed for unit tests)
+          send! send!]
 
       ;; call blog search
       (doseq [query-elem query]
-        (blog-search query-elem (fn [ok? links] ;; TODO can we use multimethods here?
-                                  (if ok?
-                                    (do
-                                      (log/info "Completed search for" query-elem)
-                                      (>!! results [query-elem links]))
-                                    (do
-                                      (log/error "Failed search for" query-elem)
-                                      (>!! failure query-elem))))))
+        (blog-search query-elem #(>!! results {:query query-elem,
+                                               :ok?   %1,
+                                               :links %2
+                                               :error %3})))
 
       ;; get search results and make the response
-      (let [aggregated-result (->> results
-                                   ;; close channel after all elements received
-                                   (async/take n)
-                                   ;; squash n elements into one collection
-                                   (async/into {}))
-            ;; put var into closure in order to force current thread bindings to take effect inside async code
-            ;; (needed for unit tests)
-            send! send!]
-        (go (alt! aggregated-result ([result] (let [body (-> result              ;; get collection of results
-                                                             make-stats                         ;; calculate stats
-                                                             (generate-string {:pretty true}))] ;; serialize
-                                                (send! channel {:status  200 ;; TODO remove default status
-                                                                ;; TODO use middleware to add content type
-                                                                :headers {"Content-Type" "application/json"}
-                                                                :body    body})))
-                  failure           ([elem] (send! channel {:status 500
-                                                            :body   (str "Query " elem " failed")}))))))))
+      (go (alt!
+            ;; if all results were ok than put them into response
+            aggregated-result
+            ([result] (let [body (-> result
+                                     make-stats                         ;; calculate stats
+                                     (generate-string {:pretty true}))] ;; serialize
+                        (send! channel {:status  200 ;; TODO remove default status
+                                        ;; TODO use middleware to add content type
+                                        :headers {"Content-Type" "application/json"}
+                                        :body    body})))
+
+            ;; if there was a failure then respond with server error
+            failures
+            ([{:keys [query]}] (send! channel {:status 500
+                                               :body   (str "Query " query " failed")})))))))
 
 (def ^:private unwrapped-routes
   (routes

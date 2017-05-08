@@ -39,6 +39,7 @@
                  ret)))
 
         ;; check blog-search invocations
+        ;; TODO use more sensible names
         (let [[[arg-1-1 arg-1-2] [arg-2-1 arg-2-2]] @blog-search-calls]
 
           ;; check how many times it was invoked
@@ -56,13 +57,13 @@
           (is (= [] @send!-calls))
 
           ;; at this point in time, we emulate that the second client is ready
-          (arg-2-2 true ["link B1", "link B2"])
+          (arg-2-2 true ["link B1", "link B2"] nil)
 
           ;; send! should not yet be invoked
           (is (= [] @send!-calls))
 
           ;; now the first client is ready
-          (arg-1-2 true ["link A1", "link A2"]))
+          (arg-1-2 true ["link A1", "link A2"] nil))
 
         ;; TODO wait for condition using clj-async-test
         (Thread/sleep 1000)
@@ -141,9 +142,9 @@
         ;; mock responses from client
         (let [{:strs [foo bar]}  @blog-search-calls]
           ;; the foo call will succeed
-          (foo true ["linke1", "linke2"])
+          (foo true ["linke1", "linke2"] nil)
           ;; the bar call will fail
-          (bar false "I'm failed"))
+          (bar false nil "I'm failed"))
 
         ;; give it time to think and invoke send! function
         (Thread/sleep 100)

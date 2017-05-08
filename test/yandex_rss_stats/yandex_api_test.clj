@@ -13,21 +13,30 @@
 
 (defn blocking-blog-search [query]
   (let [p (promise)]
-    (blog-search query #(deliver p [%1 %2]))
-    (deref p 1000 :timeout)))
+    (blog-search query #(deliver p [%1 %2 %3]))
+    (deref p 1000 [false nil :timeout])))
 
 (deftest yandex-api-test
   (with-fake-http ["https://yandex.ru/blogs/rss/search" (load-sample)]
     (testing "api"
-      (is (= '(true ["http://vk.com/wall-75338648_3206"
-                     "http://vk.com/wall-10175642_2570314"
-                     "http://liaclub.info/2017/05/01/epson-artisan-730-troubleshooting_gk/"])
-             (blocking-blog-search "query")))))
+      (let [[ok links error] (blocking-blog-search "foo")]
+        (is (= true ok))
+        (is (= ["http://vk.com/wall-75338648_3206"
+                "http://vk.com/wall-10175642_2570314"
+                "http://liaclub.info/2017/05/01/epson-artisan-730-troubleshooting_gk/"]
+               links))
+        (is (= nil error)))))
+
   (with-fake-http ["https://yandex.ru/blogs/rss/search" 500]
     (testing "api unavailable"
-      (is (= false
-             (first (blocking-blog-search "foo"))))))
+      (let [[ok links error] (blocking-blog-search "foo")]
+        (is (= false ok))
+        (is (= nil links))
+        (is (not (= nil error))))))
+
   (with-fake-http ["https://yandex.ru/blogs/rss/search" "<?malformed </xml"]
     (testing "malformed XML"
-      (is (= false
-             (first (blocking-blog-search "foo")))))))
+      (let [[ok links error] (blocking-blog-search "foo")]
+        (is (= false ok))
+        (is (= nil links))
+        (is (not (= nil error)))))))
