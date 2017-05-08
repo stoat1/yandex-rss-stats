@@ -1,5 +1,4 @@
 (ns yandex-rss-stats.controller
-  ;; TODO rename to handler
   (:require [clojure.tools.logging :as log]
             [org.httpkit.server    :refer [with-channel send!]]
             [compojure.core        :refer [routes GET]]

@@ -39,8 +39,7 @@
                  ret)))
 
         ;; check blog-search invocations
-        ;; TODO use more sensible names
-        (let [[[arg-1-1 arg-1-2] [arg-2-1 arg-2-2]] @blog-search-calls]
+        (let [[[query-1 callback-1] [query-2 callback-2]] @blog-search-calls]
 
           ;; check how many times it was invoked
           (is (= (count @blog-search-calls) 2))
@@ -50,20 +49,20 @@
             (is (= (count args) 2)))
 
           ;; first argument should come from query params
-          (is (= arg-1-1 "foo"))
-          (is (= arg-2-1 "bar"))
+          (is (= query-1 "foo"))
+          (is (= query-2 "bar"))
 
           ;; check that send! isn't yet invoked (handler should wait for the client to respond)
           (is (= [] @send!-calls))
 
           ;; at this point in time, we emulate that the second client is ready
-          (arg-2-2 true ["link B1", "link B2"] nil)
+          (callback-2 true ["link B1", "link B2"] nil)
 
           ;; send! should not yet be invoked
           (is (= [] @send!-calls))
 
           ;; now the first client is ready
-          (arg-1-2 true ["link A1", "link A2"] nil))
+          (callback-1 true ["link A1", "link A2"] nil))
 
         ;; TODO wait for condition using clj-async-test
         (Thread/sleep 1000)
